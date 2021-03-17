@@ -66,14 +66,14 @@ class NavigationActivity : AppCompatActivity(),
         RouteListener {
 
     var receiver: BroadcastReceiver? = null
-    
+
     private var navigationView: NavigationView? = null
     private lateinit var navigationMapboxMap: NavigationMapboxMap
     private lateinit var mapboxNavigation: MapboxNavigation
     private var dropoffDialogShown = false
     private var lastKnownLocation: Location? = null
     private var directionsRoute: DirectionsRoute? = null
-    
+
     private val route by lazy { intent.getSerializableExtra("route") as? DirectionsRoute }
     private var points: MutableList<Point> = mutableListOf()
 
@@ -88,19 +88,18 @@ class NavigationActivity : AppCompatActivity(),
             }
         }
         registerReceiver(receiver, IntentFilter(NavigationLauncher.KEY_STOP_NAVIGATION))
-        
+
         super.onCreate(savedInstanceState)
-        
+
         setTheme(R.style.Theme_AppCompat_NoActionBar)
 
         var accessToken = PluginUtilities.getResourceFromContext(this.applicationContext, "mapbox_access_token")
         Mapbox.getInstance(this.applicationContext, accessToken)
 
         setContentView(R.layout.activity_navigation)
-        
+
         var p = intent.getSerializableExtra("waypoints") as? MutableList<Point>
-        if(p != null)
-        {
+        if (p != null) {
             points = p
             print("Waypoints length" + points.count())
         }
@@ -168,9 +167,8 @@ class NavigationActivity : AppCompatActivity(),
             return
         }
 
-        if(points.count() > 0)
-        {
-           // fetchRoute(points.removeAt(0), points.removeAt(0))
+        if (points.count() > 0) {
+            // fetchRoute(points.removeAt(0), points.removeAt(0))
             fetchRoute(points)
         }
 
@@ -214,7 +212,7 @@ class NavigationActivity : AppCompatActivity(),
         navigationView?.stopNavigation()
         FlutterMapboxNavigationPlugin.eventSink = null
         NavigationLauncher.stopNavigation(this)
-        
+
     }
 
     override fun onNavigationFinished() {
@@ -255,7 +253,7 @@ class NavigationActivity : AppCompatActivity(),
     }
 
     override fun onFailedReroute(errorMessage: String?) {
-        sendEvent(MapBoxEvents.FAILED_TO_REROUTE,"${errorMessage}")
+        sendEvent(MapBoxEvents.FAILED_TO_REROUTE, "${errorMessage}")
     }
 
     override fun onOffRoute(offRoutePoint: Point?) {
@@ -278,12 +276,12 @@ class NavigationActivity : AppCompatActivity(),
 
         dropoffDialogShown = false
 
-        navigationView?.retrieveNavigationMapboxMap()?.let {navigationMap ->
+        navigationView?.retrieveNavigationMapboxMap()?.let { navigationMap ->
 
-            if(FlutterMapboxNavigationPlugin.mapStyleUrlDay != null)
+            if (FlutterMapboxNavigationPlugin.mapStyleUrlDay != null)
                 navigationMap.retrieveMap().setStyle(Style.Builder().fromUri(FlutterMapboxNavigationPlugin.mapStyleUrlDay as String))
 
-            if(FlutterMapboxNavigationPlugin.mapStyleUrlNight != null)
+            if (FlutterMapboxNavigationPlugin.mapStyleUrlNight != null)
                 navigationMap.retrieveMap().setStyle(Style.Builder().fromUri(FlutterMapboxNavigationPlugin.mapStyleUrlNight as String))
 
 
@@ -297,7 +295,7 @@ class NavigationActivity : AppCompatActivity(),
                 mapboxNavigation.addNavigationEventListener(this)
 
             }
-            
+            var route = directionsRoute
             // Custom map style has been loaded and map is now ready
             val options =
                     NavigationViewOptions.builder()
@@ -313,11 +311,9 @@ class NavigationActivity : AppCompatActivity(),
 
             navigationView?.startNavigation(options)
 
+        }
+    }
 
-        //navigationView!!.startNavigation(navigationViewOptions)
-    }
-    }
-    
 //    private fun showDropoffDialog() {
 //        val alertDialog = AlertDialog.Builder(this).create()
 //        alertDialog.setMessage(getString(R.string.dropoff_dialog_text))
@@ -329,69 +325,37 @@ class NavigationActivity : AppCompatActivity(),
 //    }
 
     private fun fetchRoute(coordinates: List<Point>) {
-       // Timber.d("MapMatching request with ${coordinates.size} coordinates.")
         print("MapMatching request with ${coordinates.size} coordinates.")
 
         val mapMatching = Mapbox.getAccessToken()?.let {
             MapboxMapMatching.builder()
-                .accessToken(it)
-                .coordinates(coordinates)
-               // .waypointIndices(0, coordinates.size - 1)
-               // .steps(true)
-                .bannerInstructions(true)
-                .voiceInstructions(true)
-                .profile(DirectionsCriteria.PROFILE_CYCLING)
-                .build()
+                    .accessToken(it)
+                    .steps(true)
+                    .coordinates(coordinates)
+                    .bannerInstructions(true)
+                    .voiceInstructions(true)
+                    .profile(DirectionsCriteria.PROFILE_CYCLING)
+                    .language(FlutterMapboxNavigationPlugin.navigationLanguage)
+                    .voiceUnits(FlutterMapboxNavigationPlugin.navigationVoiceUnits)
+                    .build()
                     .enqueueCall(object : Callback<MapMatchingResponse> {
-                    override fun onResponse(call: Call<MapMatchingResponse>, response: Response<MapMatchingResponse>) {
-                       // val matchedRoute = response.body()?.matchings()?.get(0)?.toDirectionRoute()
-                        val directionsResponse = response.body()
-                        if (directionsResponse != null) {
-                            //format mapmatched points
+                        override fun onResponse(call: Call<MapMatchingResponse>, response: Response<MapMatchingResponse>) {
+                            val directionsResponse = response.body()
+                            if (directionsResponse != null) {
 
-//                            var mapMatchedPoints: MutableList<Point> = mutableListOf()
-//                            print(directionsResponse)
-//                            var tracePoints = directionsResponse?.tracepoints()
-//                            for (item in tracePoints!!) {
-//                                print(item.location()?.latitude())
-//                                val _latitude: Double? = item.location()?.latitude()
-//                                val _longitude: Double? = item.location()?.longitude()
-//                                mapMatchedPoints.add(Point.fromLngLat(_longitude!!, _latitude!!))
-//
-//                            }
-//                            println(mapMatchedPoints)
-
-                            //build navigation
-
-                            if (directionsResponse.matchings() != null) {
-                                directionsResponse.matchings()?.get(0)?.toDirectionRoute()?.let {
-                                  it1 -> buildAndStartNavigation(it1)
-                                  //  it1 -> navigationMapboxMap?.drawRoute(it1)
+                                if (directionsResponse.matchings() != null) {
+                                    directionsResponse.matchings()?.get(0)?.toDirectionRoute()?.let { it1 ->
+                                        buildAndStartNavigation(it1)
+                                        //  it1 -> navigationMapboxMap?.drawRoute(it1)
+                                    }
+                                } else {
+                                    val message = directionsResponse.message()
+                                    sendEvent(MapBoxEvents.ROUTE_BUILD_FAILED, message!!)
+                                    finish()
                                 }
-                            } else {
-                                val message = directionsResponse.message()
-                                sendEvent(MapBoxEvents.ROUTE_BUILD_FAILED, message!!)
-                                finish()
                             }
+
                         }
-
-
-
-//                        directionsResponse?.matchings()?.let { matchingList ->
-////                           matchingList?.get(0).toDirectionRoute().apply {
-////                               //buildAndStartNavigation(this)
-////                               navigationMapboxMap?.drawRoute(this)
-////                            }
-//                            print(matchingList)
-//                        }
-
-
-
-//
-
-
-
-                    }
                         override fun onFailure(call: Call<MapMatchingResponse>, t: Throwable) {
                             sendEvent(MapBoxEvents.ROUTE_BUILD_FAILED, t.localizedMessage)
                             finish()
@@ -400,43 +364,6 @@ class NavigationActivity : AppCompatActivity(),
 
                     })
         }
-
-//        mapMatching?.enqueueCall(
-//                object : Callback<MapMatchingResponse> {
-//                    override fun onFailure(call: Call<MapMatchingResponse>, t: Throwable) {
-//                        Timber.e("MapMatching request failure %s", t.toString())
-//                        sendEvent(MapBoxEvents.ROUTE_BUILD_FAILED, t.localizedMessage)
-//                        finish()
-//                    }
-//
-//                    override fun onResponse(
-//                            call: Call<MapMatchingResponse>,
-//                            response: Response<MapMatchingResponse>
-//                    ) {
-//                        Timber.d("MapMatching request succeeded")
-//
-////                        val route = response.body()?.matchings()?.get(0)?.toDirectionRoute()
-////                        if (route != null) {
-////                            if (!directionsResponse.routes().isEmpty()) buildAndStartNavigation(directionsResponse.routes()[0]) else {
-////                                val message = directionsResponse.message()
-////                                sendEvent(MapBoxEvents.ROUTE_BUILD_FAILED, message!!)
-////                                finish()
-////                            }
-////                        } else {
-////                            startNavigation.visibility = View.GONE
-////                        }
-//                        val route = response.body()?.matchings()?.get(0)?.toDirectionRoute()
-//                        if (route != null) {
-//                            if (directionsRoute == null) {
-//                                buildAndStartNavigation(route)
-//                            }
-//
-//                        } else {
-//                            print("something is shitty")
-//                        }
-//                    }
-//                }
-//        )
     }
 
 //    private fun fetchRoute(origin: Point, destination: Point) {
@@ -481,6 +408,7 @@ class NavigationActivity : AppCompatActivity(),
     private fun getLastKnownLocation(): Point {
         return Point.fromLngLat(lastKnownLocation?.longitude!!, lastKnownLocation?.latitude!!)
     }
+
     private fun getCurrentDestination(): Point {
         return Point.fromLngLat(currentDestination?.longitude()!!, currentDestination?.latitude()!!)
     }
@@ -490,7 +418,7 @@ class NavigationActivity : AppCompatActivity(),
     }
 
     private fun getInitialCameraPosition(): CameraPosition {
-        if(route == null)
+        if (route == null)
             return CameraPosition.DEFAULT;
 
         val originCoordinate = route?.routeOptions()?.coordinates()?.get(0)
