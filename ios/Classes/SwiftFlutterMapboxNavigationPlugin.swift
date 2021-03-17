@@ -240,21 +240,23 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
 //        }
         
         
-        let matchingOptions = NavigationMatchOptions(coordinates: coordinates)
+        let matchingOptions = NavigationMatchOptions(coordinates: coordinates, profileIdentifier: .cycling)
         matchingOptions.includesSteps = true
+        matchingOptions.locale = Locale(identifier: _language)
+        matchingOptions.distanceMeasurementSystem = _voiceUnits == "imperial" ? .imperial : .metric
         
         print(coordinates.count)
         
         
         var dayStyle = CustomDayStyle()
         
-        let options = NavigationRouteOptions(coordinates: coordinates, profileIdentifier: .cycling)
-                if (_allowsUTurnAtWayPoints != nil)
-                {
-                    options.allowsUTurnAtWaypoint = _allowsUTurnAtWayPoints!
-                }
-                options.distanceMeasurementSystem = _voiceUnits == "imperial" ? .imperial : .metric
-                options.locale = Locale(identifier: _language)
+//        let options = NavigationRouteOptions(coordinates: coordinates, profileIdentifier: .cycling)
+//                if (_allowsUTurnAtWayPoints != nil)
+//                {
+//                    options.allowsUTurnAtWaypoint = _allowsUTurnAtWayPoints!
+//                }
+//                options.distanceMeasurementSystem = _voiceUnits == "imperial" ? .imperial : .metric
+//                options.locale = Locale(identifier: _language)
         
         let task = Directions.shared.calculateRoutes(matching: matchingOptions) { [self] (session, result) in
             switch result {
@@ -267,13 +269,14 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
                 
                 print(match)
                 
-                
+                guard case let .match(matchOptions) = response.options else { return }
+                let routeOptions = RouteOptions(matchOptions: matchOptions)
 
                 let route = match
-                let navigationService = MapboxNavigationService(route: route, routeOptions: options, simulating: .never)
+                let navigationService = MapboxNavigationService(route: route, routeOptions: routeOptions, simulating: .never)
 
                 let navigationOptions = NavigationOptions(styles: [dayStyle], navigationService: navigationService)
-                self.startNavigation(route: match, options: options, navOptions: navigationOptions)
+                self.startNavigation(route: match, options: matchingOptions, navOptions: navigationOptions)
             }
             // self.startNavigation(route: match, options: options, navOptions: navigationOptions)
             
@@ -321,7 +324,7 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
 //            }
 //        }
     
-    func startNavigation(route: Route, options: NavigationRouteOptions, navOptions: NavigationOptions)
+    func startNavigation(route: Route, options: NavigationMatchOptions, navOptions: NavigationOptions)
     {
         isEmbeddedNavigation = false
         if(self._navigationViewController == nil)
