@@ -184,11 +184,11 @@ class NavigationActivity : AppCompatActivity(),
 
     override fun userOffRoute(location: Location) {
 
-        sendEvent(MapBoxEvents.USER_OFF_ROUTE,
-                MapBoxLocation(
-                        latitude = location.latitude,
-                        longitude = location.longitude
-                ).toString())
+//        sendEvent(MapBoxEvents.USER_OFF_ROUTE,
+//                MapBoxLocation(
+//                        latitude = location.latitude,
+//                        longitude = location.longitude
+//                ).toString())
     }
 
     override fun onMilestoneEvent(routeProgress: RouteProgress, instruction: String, milestone: Milestone) {
@@ -253,7 +253,7 @@ class NavigationActivity : AppCompatActivity(),
     }
 
     override fun onFailedReroute(errorMessage: String?) {
-        sendEvent(MapBoxEvents.FAILED_TO_REROUTE, "${errorMessage}")
+//        sendEvent(MapBoxEvents.FAILED_TO_REROUTE, "${errorMessage}")
     }
 
     override fun onOffRoute(offRoutePoint: Point?) {
@@ -269,7 +269,7 @@ class NavigationActivity : AppCompatActivity(),
     }
 
     override fun onRerouteAlong(directionsRoute: DirectionsRoute?) {
-        sendEvent(MapBoxEvents.REROUTE_ALONG, "${directionsRoute?.toJson()}")
+//        sendEvent(MapBoxEvents.REROUTE_ALONG, "${directionsRoute?.toJson()}")
     }
 
     private fun buildAndStartNavigation(directionsRoute: DirectionsRoute) {
@@ -332,6 +332,7 @@ class NavigationActivity : AppCompatActivity(),
                     .accessToken(it)
                     .steps(true)
                     .coordinates(coordinates)
+                    .waypointIndices(0, coordinates.size - 1)
                     .bannerInstructions(true)
                     .voiceInstructions(true)
                     .profile(DirectionsCriteria.PROFILE_CYCLING)
@@ -343,7 +344,7 @@ class NavigationActivity : AppCompatActivity(),
                             val directionsResponse = response.body()
                             if (directionsResponse != null) {
 
-                                if (directionsResponse.matchings() != null) {
+                                if (directionsResponse.matchings()!!.isNotEmpty()) {
                                     directionsResponse.matchings()?.get(0)?.toDirectionRoute()?.let { it1 ->
                                         buildAndStartNavigation(it1)
                                         //  it1 -> navigationMapboxMap?.drawRoute(it1)
@@ -414,7 +415,7 @@ class NavigationActivity : AppCompatActivity(),
     }
 
     override fun allowRerouteFrom(offRoutePoint: Point?): Boolean {
-        return true
+        return false
     }
 
     private fun getInitialCameraPosition(): CameraPosition {
@@ -424,7 +425,7 @@ class NavigationActivity : AppCompatActivity(),
         val originCoordinate = route?.routeOptions()?.coordinates()?.get(0)
         return CameraPosition.Builder()
                 .target(LatLng(originCoordinate!!.latitude(), originCoordinate.longitude()))
-                .zoom(FlutterMapboxNavigationPlugin.zoom)
+                .zoom(5.0)
                 .bearing(FlutterMapboxNavigationPlugin.bearing)
                 .tilt(FlutterMapboxNavigationPlugin.tilt)
                 .build()
