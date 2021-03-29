@@ -227,56 +227,43 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
     
     func startNavigationWithMapmatching(coordinates: [CLLocationCoordinate2D]) {
         
-       
-//        var coordinates = [CLLocationCoordinate2D]()
-//
-//        for item in oWayPoints as NSDictionary
-//        {
-//            let point = item.value as! NSDictionary
-//            guard let oLatitude = point["Latitude"] as? Double else {return}
-//            guard let oLongitude = point["Longitude"] as? Double else {return}
-//            let coordinate = CLLocationCoordinate2D(latitude: oLatitude, longitude: oLongitude)
-//            coordinates.append(coordinate)
-//        }
-        
-        
         let matchingOptions = NavigationMatchOptions(coordinates: coordinates, profileIdentifier: .cycling)
         matchingOptions.includesSteps = true
         matchingOptions.locale = Locale(identifier: _language)
         matchingOptions.distanceMeasurementSystem = _voiceUnits == "imperial" ? .imperial : .metric
+        matchingOptions.waypointIndices = [0,coordinates.count-1]
         
-        print(coordinates.count)
+        
+        print(coordinates)
         
         
-        var dayStyle = CustomDayStyle()
+        let dayStyle = CustomDayStyle()
         
-//        let options = NavigationRouteOptions(coordinates: coordinates, profileIdentifier: .cycling)
-//                if (_allowsUTurnAtWayPoints != nil)
-//                {
-//                    options.allowsUTurnAtWaypoint = _allowsUTurnAtWayPoints!
-//                }
-//                options.distanceMeasurementSystem = _voiceUnits == "imperial" ? .imperial : .metric
-//                options.locale = Locale(identifier: _language)
+        let url = Directions.shared.urlRequest(forCalculating: matchingOptions)
+        print(url)
         
-        let task = Directions.shared.calculateRoutes(matching: matchingOptions) { [self] (session, result) in
+        Directions.shared.calculateRoutes(matching: matchingOptions) { [self] (session, result) in
+
+           // guard let strongSelf = self else { return }
             switch result {
             case .failure(let error):
+//                strongSelf.sendEvent(eventType: MapBoxEventType.route_build_failed, data: error.localizedDescription)
                 print("Error matching coordinates: \(error)")
             case .success(let response):
-                guard let match = response.routes?.first, let leg = match.legs.first else {
+                guard let match = response.routes?.first, let _ = match.legs.first else {
                     return
                 }
                 
                 print(match)
                 
                 guard case let .match(matchOptions) = response.options else { return }
-                let routeOptions = RouteOptions(matchOptions: matchOptions)
+                let routeOptions = NavigationRouteOptions(matchOptions: matchOptions)
 
                 let route = match
                 let navigationService = MapboxNavigationService(route: route, routeOptions: routeOptions, simulating: .never)
 
                 let navigationOptions = NavigationOptions(styles: [dayStyle], navigationService: navigationService)
-                self.startNavigation(route: match, options: matchingOptions, navOptions: navigationOptions)
+                self.startNavigation(route: match, options: routeOptions, navOptions: navigationOptions)
             }
             // self.startNavigation(route: match, options: options, navOptions: navigationOptions)
             
@@ -324,7 +311,7 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
 //            }
 //        }
     
-    func startNavigation(route: Route, options: NavigationMatchOptions, navOptions: NavigationOptions)
+    func startNavigation(route: Route, options: NavigationRouteOptions, navOptions: NavigationOptions)
     {
         isEmbeddedNavigation = false
         if(self._navigationViewController == nil)
