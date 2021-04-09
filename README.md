@@ -2,6 +2,12 @@
 
 Add Turn By Turn Navigation to Your Flutter Application Using MapBox. Never leave your app when you need to navigate your users to a location.
 
+
+## Switching to mapmatching
+* `master` branch contains the old code
+* `feat/ios_mapmatching` is the iOS implementation, to get it running switching from waypoints to matching is necessary in the app too. Please follow the instructions to do it in the Huli app readme file
+* `feat_android_mapmatching` is the android implementation. Same goes here as iOS with swithcing in Huli app.
+
 ## Features
 
 * A full-fledged turn-by-turn navigation UI for Flutter that’s ready to drop into your application
