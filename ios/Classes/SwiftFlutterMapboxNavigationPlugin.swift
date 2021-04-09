@@ -265,51 +265,10 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
                 let navigationOptions = NavigationOptions(styles: [dayStyle], navigationService: navigationService)
                 self.startNavigation(route: match, options: routeOptions, navOptions: navigationOptions)
             }
-            // self.startNavigation(route: match, options: options, navOptions: navigationOptions)
             
         }
     }
     
-//    func startNavigationWithWaypointMapmatching() {
-//        let coordinates = [
-//
-//
-//        ] as [Waypoint]
-//
-//
-//
-//        var mode: DirectionsProfileIdentifier = .cycling
-//
-//
-//        let navOptions = NavigationRouteOptions(waypoints: coordinates, profileIdentifier: mode)
-//        navOptions.includesSteps = true
-//
-//        if (_allowsUTurnAtWayPoints != nil)
-//        {
-//            navOptions.allowsUTurnAtWaypoint = _allowsUTurnAtWayPoints!
-//        }
-//
-//        navOptions.distanceMeasurementSystem = _voiceUnits == "imperial" ? .imperial : .metric
-//        navOptions.locale = Locale(identifier: _language)
-//
-//        let task = Directions.shared.calculate(navOptions) { (session, result) in
-//            switch result {
-//            case .failure(let error):
-//                print("Error matching coordinates: \(error)")
-//            case .success(let response):
-//                guard let match = response.routes?.first, let leg = match.legs.first else {
-//                    return
-//                }
-//
-//                print(match)
-//
-//                let route = match
-//                let navigationService = MapboxNavigationService(route: route, routeOptions: navOptions, simulating: .never)
-//
-//                let navigationOptions = NavigationOptions(styles: [], navigationService: navigationService)
-//                self.startNavigation(route: route, options: navOptions, navOptions: navigationOptions)
-//            }
-//        }
     
     func startNavigation(route: Route, options: NavigationRouteOptions, navOptions: NavigationOptions)
     {
