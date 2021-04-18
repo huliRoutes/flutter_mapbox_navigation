@@ -100,6 +100,7 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
         
         var locations = [Location]()
         var coordinates = [CLLocationCoordinate2D]()
+        var coordinateLocations = [Location]()
         
         for item in oWayPoints as NSDictionary
         {
@@ -110,16 +111,20 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
             let order = point["Order"] as? Int
             let location = Location(name: oName, latitude: oLatitude, longitude: oLongitude, order: order)
             locations.append(location)
+
+            let coordinateLocation = Location(name: oName, latitude: oLatitude, longitude: oLongitude, order: order)
+            coordinateLocations.append(coordinateLocation)
             
-            let coordinate = CLLocationCoordinate2D(latitude: oLatitude, longitude: oLongitude)
-            coordinates.append(coordinate)
-        }
-        
+            //let coordinate = CLLocationCoordinate2D(latitude: oLatitude, longitude: oLongitude)
+            //let coordinate = CLLocationCoordinate2DMake(oLatitude, oLongitude)
+            //coordinates.append(coordinate)
+        } 
     
         if(!_isOptimized)
         {
             //waypoints must be in the right order
             locations.sort(by: {$0.order ?? 0 < $1.order ?? 0})
+            coordinateLocations.sort(by: {$0.order ?? 0 < $1.order ?? 0})
         }
         
         
@@ -127,6 +132,13 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
         {
             let location = Waypoint(coordinate: CLLocationCoordinate2D(latitude: loc.latitude!, longitude: loc.longitude!), name: loc.name)
             _wayPoints.append(location)
+        }
+
+        for coordinate in coordinateLocations
+        {
+            let coordinate = CLLocationCoordinate2D(latitude: coordinate.latitude!, longitude: coordinate.longitude!)
+            //let coordinate = CLLocationCoordinate2DMake(oLatitude, oLongitude)
+            coordinates.append(coordinate)
         }
         
         _language = arguments?["language"] as? String ?? _language
@@ -231,16 +243,22 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
         matchingOptions.includesSteps = true
         matchingOptions.locale = Locale(identifier: _language)
         matchingOptions.distanceMeasurementSystem = _voiceUnits == "imperial" ? .imperial : .metric
-        matchingOptions.waypointIndices = [0,coordinates.count-1]
+
+        //matchingOptions.resamplesTraces = true
+       // matchingOptions.waypointIndices = [0,coordinates.count-1]
+
+        for waypoint in matchingOptions.waypoints.dropFirst().dropLast() {
+            waypoint.separatesLegs = false
+            waypoint.coordinateAccuracy = -1
+        }
         
-        
+        print("matching coordinates")
         print(coordinates)
-        
-        
+
         let dayStyle = CustomDayStyle()
         
-        let url = Directions.shared.urlRequest(forCalculating: matchingOptions)
-        print(url)
+        // let url = Directions.shared.urlRequest(forCalculating: matchingOptions)
+        // print(url)
         
         Directions.shared.calculateRoutes(matching: matchingOptions) { [self] (session, result) in
 
@@ -254,10 +272,16 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
                     return
                 }
                 
+                print("match response")
+                print(response)
+
+                print("match")
                 print(match)
                 
                 guard case let .match(matchOptions) = response.options else { return }
                 let routeOptions = NavigationRouteOptions(matchOptions: matchOptions)
+
+                //let routeOptions = NavigationRouteOptions(coordinates: coordinates, profileIdentifier: .cycling)
 
                 let route = match
                 let navigationService = MapboxNavigationService(route: route, routeOptions: routeOptions, simulating: .never)
