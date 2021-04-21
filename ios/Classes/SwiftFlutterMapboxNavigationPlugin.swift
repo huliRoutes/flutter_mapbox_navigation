@@ -257,15 +257,14 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
 
         let dayStyle = CustomDayStyle()
         
-        // let url = Directions.shared.urlRequest(forCalculating: matchingOptions)
-        // print(url)
+        let url = Directions.shared.urlRequest(forCalculating: matchingOptions)
+        print(url)
         
-        Directions.shared.calculateRoutes(matching: matchingOptions) { [self] (session, result) in
-
-           // guard let strongSelf = self else { return }
+        Directions.shared.calculateRoutes(matching: matchingOptions) { [weak self] (session, result) in
+            guard let strongSelf = self else { return }
             switch result {
             case .failure(let error):
-//                strongSelf.sendEvent(eventType: MapBoxEventType.route_build_failed, data: error.localizedDescription)
+                strongSelf.sendEvent(eventType: MapBoxEventType.route_build_failed, data: error.localizedDescription)
                 print("Error matching coordinates: \(error)")
             case .success(let response):
                 guard let match = response.routes?.first, let _ = match.legs.first else {
@@ -287,7 +286,7 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
                 let navigationService = MapboxNavigationService(route: route, routeOptions: routeOptions, simulating: .never)
 
                 let navigationOptions = NavigationOptions(styles: [dayStyle], navigationService: navigationService)
-                self.startNavigation(route: match, options: routeOptions, navOptions: navigationOptions)
+                strongSelf.startNavigation(route: match, options: routeOptions, navOptions: navigationOptions)
             }
             
         }
@@ -303,6 +302,9 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
             self._navigationViewController!.modalPresentationStyle = .fullScreen
             self._navigationViewController!.delegate = self
             self._navigationViewController!.mapView?.localizeLabels()
+
+            self._navigationViewController!.showsReportFeedback = false
+            self._navigationViewController!.showsEndOfRouteFeedback = false
         }
         let flutterViewController = UIApplication.shared.delegate?.window??.rootViewController as! FlutterViewController
         flutterViewController.present(self._navigationViewController!, animated: true, completion: nil)
