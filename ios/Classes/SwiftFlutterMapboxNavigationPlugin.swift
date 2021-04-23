@@ -1197,6 +1197,8 @@ class CustomDayStyle: DayStyle {
         super.apply()
         
         ArrivalTimeLabel.appearance().textColor = lightGrayColor
+        ArrivalTimeLabel.appearance().alpha = 0
+        ArrivalTimeLabel.appearance().isHidden = true
         BottomBannerView.appearance().backgroundColor = secondaryBackgroundColor
         TopBannerView.appearance().backgroundColor = backgroundColor
         DismissButton.appearance().backgroundColor = backgroundColor
@@ -1208,6 +1210,7 @@ class CustomDayStyle: DayStyle {
         DistanceLabel.appearance(whenContainedInInstancesOf: [StepInstructionsView.self]).unitTextColor = lightGrayColor
         DistanceLabel.appearance(whenContainedInInstancesOf: [StepInstructionsView.self]).valueTextColor = darkGrayColor
         DistanceRemainingLabel.appearance().textColor = lightGrayColor
+        //DistanceRemainingLabel.appearance().font = .systemFont(ofSize: 28, weight: .medium)
         
         FloatingButton.appearance().backgroundColor = #colorLiteral(red: 0.9999960065, green: 1, blue: 1, alpha: 1)
         FloatingButton.appearance().tintColor = defaultGreenColor
@@ -1240,11 +1243,10 @@ class CustomDayStyle: DayStyle {
         SecondaryLabel.appearance(whenContainedInInstancesOf: [StepInstructionsView.self]).normalTextColor = darkGrayColor
         TimeRemainingLabel.appearance().textColor = lightGrayColor
         TimeRemainingLabel.appearance().trafficUnknownColor = darkGrayColor
+        //TimeRemainingLabel.appearance().alpha = 0
+        TimeRemainingLabel.appearance().isHidden = true
         WayNameLabel.appearance().normalTextColor = defaultGreenColor
         WayNameView.appearance().backgroundColor = secondaryBackgroundColor
-        
-        
-        
     }
 }
 
