@@ -76,6 +76,7 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
     var _lastKnownLocation: CLLocation?
     
     var _options: NavigationRouteOptions?
+    var _routeJson: String?
     var _simulateRoute = false
     var _allowsUTurnAtWayPoints: Bool?
     var _isOptimized = false
@@ -101,6 +102,9 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
         var locations = [Location]()
         var coordinates = [CLLocationCoordinate2D]()
         var coordinateLocations = [Location]()
+
+        print("oWayPoints")
+        print(oWayPoints)
         
         for item in oWayPoints as NSDictionary
         {
@@ -140,6 +144,8 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
             //let coordinate = CLLocationCoordinate2DMake(oLatitude, oLongitude)
             coordinates.append(coordinate)
         }
+
+        _routeJson = arguments?["routeJson"] as? String
         
         _language = arguments?["language"] as? String ?? _language
         _voiceUnits = arguments?["units"] as? String ?? _voiceUnits
@@ -166,7 +172,8 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
 //           }
 //
 //       }
-       startNavigationWithMapmatching(coordinates: coordinates)
+       //startNavigationWithMapmatching(coordinates: coordinates)
+       startNavigationWithJson(coordinates: coordinates, flutterResult: result)
     }
     
     func startNavigationWithWayPoints(wayPoints: [Waypoint], flutterResult: @escaping FlutterResult)
@@ -249,7 +256,7 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
 
         for waypoint in matchingOptions.waypoints.dropFirst().dropLast() {
             waypoint.separatesLegs = false
-            waypoint.coordinateAccuracy = -1
+            //waypoint.coordinateAccuracy = 2
         }
         
         print("matching coordinates")
@@ -270,12 +277,9 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
                 guard let match = response.routes?.first, let _ = match.legs.first else {
                     return
                 }
-                
-                print("match response")
-                print(response)
 
-                print("match")
-                print(match)
+                // print("match")
+                // print(match)
                 
                 guard case let .match(matchOptions) = response.options else { return }
                 let routeOptions = NavigationRouteOptions(matchOptions: matchOptions)
@@ -288,10 +292,45 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
                 let navigationOptions = NavigationOptions(styles: [dayStyle], navigationService: navigationService)
                 strongSelf.startNavigation(route: match, options: routeOptions, navOptions: navigationOptions)
             }
-            
         }
     }
-    
+
+    func startNavigationWithJson(coordinates: [CLLocationCoordinate2D], flutterResult: @escaping FlutterResult)
+    {
+         if (_routeJson != nil) {
+            let json = _routeJson!.data(using: .utf8)!
+
+            let matchingOptions = NavigationMatchOptions(coordinates: coordinates, profileIdentifier: .cycling)
+            matchingOptions.locale = Locale(identifier: _language)
+            matchingOptions.distanceMeasurementSystem = _voiceUnits == "imperial" ? .imperial : .metric
+
+            let decoder = JSONDecoder()
+            decoder.userInfo[.options] = matchingOptions
+            decoder.userInfo[.credentials] = Directions.shared.credentials
+            let response: MapboxDirections.MapMatchingResponse? = try? decoder.decode(MapboxDirections.MapMatchingResponse.self, from: json)
+
+            if let response = response {
+                let routeResponse = try! RouteResponse(matching: response, options: matchingOptions, credentials: Directions.shared.credentials)
+
+                guard let match = routeResponse.routes?.first, let _ = match.legs.first else {
+                    return
+                }
+
+                guard case let .match(matchOptions) = routeResponse.options else { return }
+                let routeOptions = NavigationRouteOptions(matchOptions: matchOptions)
+                let dayStyle = CustomDayStyle()
+
+                let route = match
+                let navigationService = MapboxNavigationService(route: route, routeOptions: routeOptions, simulating: .never)
+
+                let navigationOptions = NavigationOptions(styles: [dayStyle], navigationService: navigationService)
+                startNavigation(route: match, options: routeOptions, navOptions: navigationOptions)
+            } else {
+                sendEvent(eventType: MapBoxEventType.route_build_failed)
+                print("Error parsing routes from json")
+            }
+        }
+    }
     
     func startNavigation(route: Route, options: NavigationRouteOptions, navOptions: NavigationOptions)
     {
@@ -831,6 +870,7 @@ public class FlutterMapboxNavigationView : NavigationFactory, MGLMapViewDelegate
         {
             _navigationMode = "driving"
         }
+
         _mapStyleUrlDay = arguments?["mapStyleUrlDay"] as? String
         _mapStyleUrlNight = arguments?["mapStyleUrlNight"] as? String
         
@@ -975,8 +1015,6 @@ public class FlutterMapboxNavigationView : NavigationFactory, MGLMapViewDelegate
                 }
                 
             }
-            
-            
         }
     }
     
