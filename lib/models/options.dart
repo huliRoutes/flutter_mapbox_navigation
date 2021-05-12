@@ -27,12 +27,15 @@ class MapBoxOptions {
   ///
   /// The map camera tilt can also adjust by placing two fingertips on the map and moving both fingers up and down in parallel at the same time or
   final double tilt;
+
   ///
   /// When true, alternate routes will be presented
   final bool alternatives;
+
   ///
   /// The navigation mode desired. Defaults to drivingWithTraffic
   final MapBoxNavigationMode mode;
+
   /// The unit of measure said in voice instructions
   final VoiceUnits units;
 
@@ -71,6 +74,8 @@ class MapBoxOptions {
   /// No destination is required when set to true.
   final bool enableFreeDriveMode;
 
+  final String routeJson;
+
   MapBoxOptions(
       {this.initialLatitude,
       this.initialLongitude,
@@ -92,7 +97,8 @@ class MapBoxOptions {
       this.mapStyleUrlNight,
       this.enableFreeDriveMode,
       this.padding,
-      this.animateBuildRoute});
+      this.animateBuildRoute,
+      this.routeJson});
 
   Map<String, dynamic> toMap() {
     final Map<String, dynamic> optionsMap = new Map<String, dynamic>();
@@ -121,6 +127,7 @@ class MapBoxOptions {
       optionsMap['allowsUTurnAtWayPoints'] = this.allowsUTurnAtWayPoints;
     if (this.enableRefresh != null)
       optionsMap['enableRefresh'] = this.enableRefresh;
+    if (this.routeJson != null) optionsMap['routeJson'] = this.routeJson;
 
     addIfNonNull("voiceInstructionsEnabled", voiceInstructionsEnabled);
     addIfNonNull("bannerInstructionsEnabled", bannerInstructionsEnabled);
