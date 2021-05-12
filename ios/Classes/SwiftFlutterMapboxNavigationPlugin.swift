@@ -173,7 +173,7 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
 //
 //       }
        //startNavigationWithMapmatching(coordinates: coordinates)
-       startNavigationWithJson(coordinates: coordinates, flutterResult: result)
+       startNavigationWithDirectionsJson(coordinates: coordinates, flutterResult: result)
     }
     
     func startNavigationWithWayPoints(wayPoints: [Waypoint], flutterResult: @escaping FlutterResult)
@@ -295,7 +295,7 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
         }
     }
 
-    func startNavigationWithJson(coordinates: [CLLocationCoordinate2D], flutterResult: @escaping FlutterResult)
+    func startNavigationWithMatchJson(coordinates: [CLLocationCoordinate2D], flutterResult: @escaping FlutterResult)
     {
          if (_routeJson != nil) {
             let json = _routeJson!.data(using: .utf8)!
@@ -327,7 +327,31 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
                 startNavigation(route: match, options: routeOptions, navOptions: navigationOptions)
             } else {
                 sendEvent(eventType: MapBoxEventType.route_build_failed)
-                print("Error parsing routes from json")
+                print("Error parsing route from json")
+            }
+        }
+    }
+
+    func startNavigationWithDirectionsJson(coordinates: [CLLocationCoordinate2D], flutterResult: @escaping FlutterResult)
+    {
+         if (_routeJson != nil) {
+            let json = _routeJson!.data(using: .utf8)!
+
+            let routeOptions = NavigationRouteOptions(coordinates: coordinates, profileIdentifier: .cycling)
+
+            let decoder = JSONDecoder()
+            decoder.userInfo[.options] = routeOptions
+            decoder.userInfo[.credentials] = Directions.shared.credentials
+            let route: MapboxDirections.Route? = try? decoder.decode(MapboxDirections.Route.self, from: json)
+
+            if let route = route {
+                let navigationService = MapboxNavigationService(route: route, routeOptions: routeOptions, simulating: .never)
+                let dayStyle = CustomDayStyle()
+                let navigationOptions = NavigationOptions(styles: [dayStyle], navigationService: navigationService)
+                startNavigation(route: route, options: routeOptions, navOptions: navigationOptions)
+            } else {
+                sendEvent(eventType: MapBoxEventType.route_build_failed)
+                print("Error parsing route from json")
             }
         }
     }
