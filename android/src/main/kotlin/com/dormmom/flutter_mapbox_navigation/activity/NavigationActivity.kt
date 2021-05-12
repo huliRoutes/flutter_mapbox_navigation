@@ -171,7 +171,7 @@ class NavigationActivity : AppCompatActivity(),
         if (points.count() > 0) {
             // fetchRoute(points.removeAt(0), points.removeAt(0))
             //fetchRoute(points)
-            fetchRouteWithJson(points)
+            fetchRouteWithJson()
         }
 
     }
@@ -311,8 +311,9 @@ class NavigationActivity : AppCompatActivity(),
                             .build()
 
             navigationView?.startNavigation(options)
-
         }
+
+        navigationView?.retrieveFeedbackButton()!!.hide()
     }
 
 //    private fun showDropoffDialog() {
@@ -325,9 +326,8 @@ class NavigationActivity : AppCompatActivity(),
 //        alertDialog.show()
 //    }
 
-    private fun fetchRouteWithJson(coordinates: List<Point>) {
-        print("MapMatching request with ${coordinates.size} coordinates.")
-        
+    private fun fetchRouteWithJson() {
+        print("MapMatching json.")
         if (FlutterMapboxNavigationPlugin.routeJson != null) {
             val route = DirectionsRoute.fromJson(FlutterMapboxNavigationPlugin.routeJson);
             buildAndStartNavigation(route)
