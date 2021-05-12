@@ -21,6 +21,9 @@ import com.mapbox.api.directions.v5.DirectionsCriteria
 import com.mapbox.api.directions.v5.models.BannerInstructions
 import com.mapbox.api.directions.v5.models.DirectionsResponse
 import com.mapbox.api.directions.v5.models.DirectionsRoute
+import com.mapbox.api.matching.v5.MapboxMapMatching
+import com.mapbox.api.matching.v5.models.MapMatchingMatching;
+import com.mapbox.api.matching.v5.models.MapMatchingResponse
 import com.mapbox.geojson.Point
 import com.mapbox.mapboxsdk.Mapbox
 import com.mapbox.mapboxsdk.camera.CameraPosition
@@ -47,7 +50,9 @@ import com.mapbox.services.android.navigation.v5.routeprogress.ProgressChangeLis
 import com.mapbox.services.android.navigation.v5.routeprogress.RouteProgress
 
 import retrofit2.Call
+import retrofit2.Callback
 import retrofit2.Response
+import timber.log.Timber
 
 class NavigationActivity : AppCompatActivity(),
         OnNavigationReadyCallback,
@@ -62,13 +67,14 @@ class NavigationActivity : AppCompatActivity(),
         RouteListener {
 
     var receiver: BroadcastReceiver? = null
-    
+
     private var navigationView: NavigationView? = null
     private lateinit var navigationMapboxMap: NavigationMapboxMap
     private lateinit var mapboxNavigation: MapboxNavigation
     private var dropoffDialogShown = false
     private var lastKnownLocation: Location? = null
-    
+    private var directionsRoute: DirectionsRoute? = null
+
     private val route by lazy { intent.getSerializableExtra("route") as? DirectionsRoute }
     private var points: MutableList<Point> = mutableListOf()
 
@@ -83,19 +89,18 @@ class NavigationActivity : AppCompatActivity(),
             }
         }
         registerReceiver(receiver, IntentFilter(NavigationLauncher.KEY_STOP_NAVIGATION))
-        
+
         super.onCreate(savedInstanceState)
-        
+
         setTheme(R.style.Theme_AppCompat_NoActionBar)
 
         var accessToken = PluginUtilities.getResourceFromContext(this.applicationContext, "mapbox_access_token")
         Mapbox.getInstance(this.applicationContext, accessToken)
 
         setContentView(R.layout.activity_navigation)
-        
+
         var p = intent.getSerializableExtra("waypoints") as? MutableList<Point>
-        if(p != null)
-        {
+        if (p != null) {
             points = p
             print("Waypoints length" + points.count())
         }
@@ -163,9 +168,10 @@ class NavigationActivity : AppCompatActivity(),
             return
         }
 
-        if(points.count() > 0)
-        {
-            fetchRoute(points.removeAt(0), points.removeAt(0))
+        if (points.count() > 0) {
+            // fetchRoute(points.removeAt(0), points.removeAt(0))
+            //fetchRoute(points)
+            fetchRouteWithJson()
         }
 
     }
@@ -180,11 +186,11 @@ class NavigationActivity : AppCompatActivity(),
 
     override fun userOffRoute(location: Location) {
 
-        sendEvent(MapBoxEvents.USER_OFF_ROUTE,
-                MapBoxLocation(
-                        latitude = location.latitude,
-                        longitude = location.longitude
-                ).toString())
+//        sendEvent(MapBoxEvents.USER_OFF_ROUTE,
+//                MapBoxLocation(
+//                        latitude = location.latitude,
+//                        longitude = location.longitude
+//                ).toString())
     }
 
     override fun onMilestoneEvent(routeProgress: RouteProgress, instruction: String, milestone: Milestone) {
@@ -199,7 +205,6 @@ class NavigationActivity : AppCompatActivity(),
     }
 
     override fun onRunning(running: Boolean) {
-
         sendEvent(MapBoxEvents.NAVIGATION_RUNNING)
     }
 
@@ -208,7 +213,7 @@ class NavigationActivity : AppCompatActivity(),
         navigationView?.stopNavigation()
         FlutterMapboxNavigationPlugin.eventSink = null
         NavigationLauncher.stopNavigation(this)
-        
+
     }
 
     override fun onNavigationFinished() {
@@ -236,48 +241,48 @@ class NavigationActivity : AppCompatActivity(),
     }
 
     override fun onArrival() {
-        sendEvent(MapBoxEvents.ON_ARRIVAL)
-        if (points.isNotEmpty()) {
-            fetchRoute(getLastKnownLocation(), points.removeAt(0))
-            dropoffDialogShown = true // Accounts for multiple arrival events
-            //Toast.makeText(this, "You have arrived!", Toast.LENGTH_SHORT).show()
-        }
-        else
-        {
-            FlutterMapboxNavigationPlugin.eventSink = null
-        }
+//        sendEvent(MapBoxEvents.ON_ARRIVAL)
+//        if (points.isNotEmpty()) {
+//            fetchRoute(getLastKnownLocation(), points.removeAt(0))
+//            dropoffDialogShown = true // Accounts for multiple arrival events
+//            //Toast.makeText(this, "You have arrived!", Toast.LENGTH_SHORT).show()
+//        }
+//        else
+//        {
+//            FlutterMapboxNavigationPlugin.eventSink = null
+//        }
     }
 
     override fun onFailedReroute(errorMessage: String?) {
-        sendEvent(MapBoxEvents.FAILED_TO_REROUTE,"${errorMessage}")
+//        sendEvent(MapBoxEvents.FAILED_TO_REROUTE, "${errorMessage}")
     }
 
     override fun onOffRoute(offRoutePoint: Point?) {
-        sendEvent(MapBoxEvents.USER_OFF_ROUTE,
-                MapBoxLocation(
-                        latitude = offRoutePoint?.latitude(),
-                        longitude = offRoutePoint?.longitude()
-                ).toString())
-        if(offRoutePoint != null)
-            fetchRoute(offRoutePoint, getCurrentDestination());
-        else
-            fetchRoute(getLastKnownLocation(), getCurrentDestination());
+//        sendEvent(MapBoxEvents.USER_OFF_ROUTE,
+//                MapBoxLocation(
+//                        latitude = offRoutePoint?.latitude(),
+//                        longitude = offRoutePoint?.longitude()
+//                ).toString())
+//        if(offRoutePoint != null)
+//            fetchRoute(offRoutePoint, getCurrentDestination());
+//        else
+//            fetchRoute(getLastKnownLocation(), getCurrentDestination());
     }
 
     override fun onRerouteAlong(directionsRoute: DirectionsRoute?) {
-        sendEvent(MapBoxEvents.REROUTE_ALONG, "${directionsRoute?.toJson()}")
+//        sendEvent(MapBoxEvents.REROUTE_ALONG, "${directionsRoute?.toJson()}")
     }
 
     private fun buildAndStartNavigation(directionsRoute: DirectionsRoute) {
 
         dropoffDialogShown = false
 
-        navigationView?.retrieveNavigationMapboxMap()?.let {navigationMap ->
+        navigationView?.retrieveNavigationMapboxMap()?.let { navigationMap ->
 
-            if(FlutterMapboxNavigationPlugin.mapStyleUrlDay != null)
+            if (FlutterMapboxNavigationPlugin.mapStyleUrlDay != null)
                 navigationMap.retrieveMap().setStyle(Style.Builder().fromUri(FlutterMapboxNavigationPlugin.mapStyleUrlDay as String))
 
-            if(FlutterMapboxNavigationPlugin.mapStyleUrlNight != null)
+            if (FlutterMapboxNavigationPlugin.mapStyleUrlNight != null)
                 navigationMap.retrieveMap().setStyle(Style.Builder().fromUri(FlutterMapboxNavigationPlugin.mapStyleUrlNight as String))
 
 
@@ -289,8 +294,9 @@ class NavigationActivity : AppCompatActivity(),
                 mapboxNavigation.addOffRouteListener(this)
                 mapboxNavigation.addFasterRouteListener(this)
                 mapboxNavigation.addNavigationEventListener(this)
+
             }
-            
+            var route = directionsRoute
             // Custom map style has been loaded and map is now ready
             val options =
                     NavigationViewOptions.builder()
@@ -305,79 +311,128 @@ class NavigationActivity : AppCompatActivity(),
                             .build()
 
             navigationView?.startNavigation(options)
-
         }
-        //navigationView!!.startNavigation(navigationViewOptions)
-    }
-    
-    private fun showDropoffDialog() {
-        val alertDialog = AlertDialog.Builder(this).create()
-        alertDialog.setMessage(getString(R.string.dropoff_dialog_text))
-        alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, getString(R.string.dropoff_dialog_positive_text)
-        ) { dialogInterface: DialogInterface?, `in`: Int -> fetchRoute(getLastKnownLocation(), points.removeAt(0)) }
-        alertDialog.setButton(DialogInterface.BUTTON_NEGATIVE, getString(R.string.dropoff_dialog_negative_text)
-        ) { dialogInterface: DialogInterface?, `in`: Int -> }
-        alertDialog.show()
+
+        navigationView?.retrieveFeedbackButton()!!.hide()
     }
 
-    private fun fetchRoute(origin: Point, destination: Point) {
+//    private fun showDropoffDialog() {
+//        val alertDialog = AlertDialog.Builder(this).create()
+//        alertDialog.setMessage(getString(R.string.dropoff_dialog_text))
+//        alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, getString(R.string.dropoff_dialog_positive_text)
+//        ) { dialogInterface: DialogInterface?, `in`: Int -> fetchRoute(getLastKnownLocation(), points.removeAt(0)) }
+//        alertDialog.setButton(DialogInterface.BUTTON_NEGATIVE, getString(R.string.dropoff_dialog_negative_text)
+//        ) { dialogInterface: DialogInterface?, `in`: Int -> }
+//        alertDialog.show()
+//    }
 
-        val accessToken = Mapbox.getAccessToken()
-        if (accessToken == null) {
-            Toast.makeText(this, "Access Token is Required", Toast.LENGTH_SHORT).show()
-            finish()
-            return
+    private fun fetchRouteWithJson() {
+        print("MapMatching json.")
+        if (FlutterMapboxNavigationPlugin.routeJson != null) {
+            val route = DirectionsRoute.fromJson(FlutterMapboxNavigationPlugin.routeJson);
+            buildAndStartNavigation(route)
         }
-        currentDestination = destination
-        NavigationRoute.builder(this)
-                .accessToken(accessToken)
-                .origin(origin)
-                .destination(destination)
-                .alternatives(false)
-                .profile(DirectionsCriteria.PROFILE_CYCLING)
-                .language(FlutterMapboxNavigationPlugin.navigationLanguage)
-                .voiceUnits(FlutterMapboxNavigationPlugin.navigationVoiceUnits)
-                .continueStraight(!FlutterMapboxNavigationPlugin.allowsUTurnsAtWayPoints)
-                .annotations(DirectionsCriteria.ANNOTATION_DISTANCE, DirectionsCriteria.ANNOTATION_DURATION, DirectionsCriteria.ANNOTATION_DURATION, DirectionsCriteria.ANNOTATION_CONGESTION)
-                .build()
-                .getRoute(object : SimplifiedCallback() {
-                    override fun onResponse(call: Call<DirectionsResponse>, response: Response<DirectionsResponse>) {
-                        val directionsResponse = response.body()
-                        if (directionsResponse != null) {
-                            if (!directionsResponse.routes().isEmpty()) buildAndStartNavigation(directionsResponse.routes()[0]) else {
-                                val message = directionsResponse.message()
-                                sendEvent(MapBoxEvents.ROUTE_BUILD_FAILED, message!!)
-                                finish()
+    }
+
+    private fun fetchRoute(coordinates: List<Point>) {
+        print("MapMatching request with ${coordinates.size} coordinates.")
+
+        val mapMatching = Mapbox.getAccessToken()?.let {
+            MapboxMapMatching.builder()
+                    .accessToken(it)
+                    .steps(true)
+                    .coordinates(coordinates)
+                    .waypointIndices(0, coordinates.size - 1)
+                    .bannerInstructions(true)
+                    .voiceInstructions(true)
+                    .profile(DirectionsCriteria.PROFILE_CYCLING)
+                    .language(FlutterMapboxNavigationPlugin.navigationLanguage)
+                    .voiceUnits(FlutterMapboxNavigationPlugin.navigationVoiceUnits)
+                    .build()
+                    .enqueueCall(object : Callback<MapMatchingResponse> {
+                        override fun onResponse(call: Call<MapMatchingResponse>, response: Response<MapMatchingResponse>) {
+                            val directionsResponse = response.body()
+                            if (directionsResponse != null) {
+
+                                if (directionsResponse.matchings()!!.isNotEmpty()) {
+                                    directionsResponse.matchings()?.get(0)?.toDirectionRoute()?.let { it1 ->
+                                        buildAndStartNavigation(it1)
+                                        //  it1 -> navigationMapboxMap?.drawRoute(it1)
+                                    }
+                                } else {
+                                    val message = directionsResponse.message()
+                                    sendEvent(MapBoxEvents.ROUTE_BUILD_FAILED, message!!)
+                                    finish()
+                                }
                             }
                         }
-                    }
-
-                    override fun onFailure(call: Call<DirectionsResponse>, throwable: Throwable) {
-                        sendEvent(MapBoxEvents.ROUTE_BUILD_FAILED, throwable.localizedMessage)
-                        finish()
-                    }
-                })
+                        override fun onFailure(call: Call<MapMatchingResponse>, t: Throwable) {
+                            sendEvent(MapBoxEvents.ROUTE_BUILD_FAILED, t.localizedMessage)
+                            finish()
+                        }
+                    })
+        }
     }
+
+//    private fun fetchRoute(origin: Point, destination: Point) {
+//
+//        val accessToken = Mapbox.getAccessToken()
+//        if (accessToken == null) {
+//            Toast.makeText(this, "Access Token is Required", Toast.LENGTH_SHORT).show()
+//            finish()
+//            return
+//        }
+//        currentDestination = destination
+//        NavigationRoute.builder(this)
+//                .accessToken(accessToken)
+//                .origin(origin)
+//                .destination(destination)
+//                .alternatives(false)
+//                .profile(DirectionsCriteria.PROFILE_CYCLING)
+//                .language(FlutterMapboxNavigationPlugin.navigationLanguage)
+//                .voiceUnits(FlutterMapboxNavigationPlugin.navigationVoiceUnits)
+//                .continueStraight(!FlutterMapboxNavigationPlugin.allowsUTurnsAtWayPoints)
+//                .annotations(DirectionsCriteria.ANNOTATION_DISTANCE, DirectionsCriteria.ANNOTATION_DURATION, DirectionsCriteria.ANNOTATION_DURATION, DirectionsCriteria.ANNOTATION_CONGESTION)
+//                .build()
+//                .getRoute(object : SimplifiedCallback() {
+//                    override fun onResponse(call: Call<DirectionsResponse>, response: Response<DirectionsResponse>) {
+//                        val directionsResponse = response.body()
+//                        if (directionsResponse != null) {
+//                            if (!directionsResponse.routes().isEmpty()) buildAndStartNavigation(directionsResponse.routes()[0]) else {
+//                                val message = directionsResponse.message()
+//                                sendEvent(MapBoxEvents.ROUTE_BUILD_FAILED, message!!)
+//                                finish()
+//                            }
+//                        }
+//                    }
+//
+//                    override fun onFailure(call: Call<DirectionsResponse>, throwable: Throwable) {
+//                        sendEvent(MapBoxEvents.ROUTE_BUILD_FAILED, throwable.localizedMessage)
+//                        finish()
+//                    }
+//                })
+//    }
 
     private fun getLastKnownLocation(): Point {
         return Point.fromLngLat(lastKnownLocation?.longitude!!, lastKnownLocation?.latitude!!)
     }
+
     private fun getCurrentDestination(): Point {
         return Point.fromLngLat(currentDestination?.longitude()!!, currentDestination?.latitude()!!)
     }
 
     override fun allowRerouteFrom(offRoutePoint: Point?): Boolean {
-        return true
+        return false
     }
 
     private fun getInitialCameraPosition(): CameraPosition {
-        if(route == null)
+        if (route == null)
             return CameraPosition.DEFAULT;
 
         val originCoordinate = route?.routeOptions()?.coordinates()?.get(0)
         return CameraPosition.Builder()
                 .target(LatLng(originCoordinate!!.latitude(), originCoordinate.longitude()))
-                .zoom(FlutterMapboxNavigationPlugin.zoom)
+                .zoom(5.0)
                 .bearing(FlutterMapboxNavigationPlugin.bearing)
                 .tilt(FlutterMapboxNavigationPlugin.tilt)
                 .build()

@@ -75,7 +75,7 @@ class _MyAppState extends State<MyApp> {
         mode: MapBoxNavigationMode.drivingWithTraffic,
         units: VoiceUnits.imperial,
         simulateRoute: false,
-        animateBuildRoute: true,
+        animateBuildRoute: false,
         longPressDestinationEnabled: true,
         language: "en");
 
