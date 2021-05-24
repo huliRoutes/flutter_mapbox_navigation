@@ -338,6 +338,8 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
             let json = _routeJson!.data(using: .utf8)!
 
             let routeOptions = NavigationRouteOptions(coordinates: coordinates, profileIdentifier: .cycling)
+            routeOptions.locale = Locale(identifier: _language)
+            routeOptions.distanceMeasurementSystem = _voiceUnits == "imperial" ? .imperial : .metric
 
             let decoder = JSONDecoder()
             decoder.userInfo[.options] = routeOptions
