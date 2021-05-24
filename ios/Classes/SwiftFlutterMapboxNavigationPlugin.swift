@@ -1311,6 +1311,8 @@ class CustomDayStyle: DayStyle {
         TimeRemainingLabel.appearance().isHidden = true
         WayNameLabel.appearance().normalTextColor = defaultGreenColor
         WayNameView.appearance().backgroundColor = secondaryBackgroundColor
+        WayNameView.appearance().alpha = 0
+        WayNameView.appearance().isHidden = true
     }
 }
 
