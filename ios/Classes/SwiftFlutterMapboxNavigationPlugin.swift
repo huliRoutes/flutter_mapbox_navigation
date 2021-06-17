@@ -370,6 +370,8 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
 
             self._navigationViewController!.showsReportFeedback = false
             self._navigationViewController!.showsEndOfRouteFeedback = false
+
+            NavigationSettings.shared.distanceUnit = options.distanceMeasurementSystem == .metric ? .kilometer : .mile;
         }
         let flutterViewController = UIApplication.shared.delegate?.window??.rootViewController as! FlutterViewController
         flutterViewController.present(self._navigationViewController!, animated: true, completion: nil)
