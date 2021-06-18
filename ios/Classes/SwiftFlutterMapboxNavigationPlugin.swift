@@ -44,10 +44,10 @@ public class SwiftFlutterMapboxNavigationPlugin: NavigationFactory, FlutterPlugi
         {
             endNavigation(result: result)
         }
-        else if(call.method == "enableOfflineRouting")
-        {
-            downloadOfflineRoute(arguments: arguments, flutterResult: result)
-        }
+        // else if(call.method == "enableOfflineRouting")
+        // {
+        //     downloadOfflineRoute(arguments: arguments, flutterResult: result)
+        // }
         else
         {
             result("Method is Not Implemented");
@@ -227,7 +227,7 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
                 else
                 {
                     let route = routes.first!
-                    let navigationService = MapboxNavigationService(route: route, routeOptions: options, simulating: simulationMode)
+                    let navigationService = MapboxNavigationService(route: route, routeIndex: 0, routeOptions: options, simulating: simulationMode)
                     var dayStyle = CustomDayStyle()
                     if(strongSelf._mapStyleUrlDay != nil){
                         dayStyle = CustomDayStyle(url: strongSelf._mapStyleUrlDay)
@@ -287,7 +287,7 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
                 //let routeOptions = NavigationRouteOptions(coordinates: coordinates, profileIdentifier: .cycling)
 
                 let route = match
-                let navigationService = MapboxNavigationService(route: route, routeOptions: routeOptions, simulating: .never)
+                let navigationService = MapboxNavigationService(route: route, routeIndex: 0, routeOptions: routeOptions, simulating: .never)
 
                 let navigationOptions = NavigationOptions(styles: [dayStyle], navigationService: navigationService)
                 strongSelf.startNavigation(route: match, options: routeOptions, navOptions: navigationOptions)
@@ -321,7 +321,7 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
                 let dayStyle = CustomDayStyle()
 
                 let route = match
-                let navigationService = MapboxNavigationService(route: route, routeOptions: routeOptions, simulating: .never)
+                let navigationService = MapboxNavigationService(route: route, routeIndex: 0, routeOptions: routeOptions, simulating: .never)
 
                 let navigationOptions = NavigationOptions(styles: [dayStyle], navigationService: navigationService)
                 startNavigation(route: match, options: routeOptions, navOptions: navigationOptions)
@@ -334,6 +334,8 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
 
     func startNavigationWithDirectionsJson(coordinates: [CLLocationCoordinate2D], flutterResult: @escaping FlutterResult)
     {
+        let simulationMode: SimulationMode = _simulateRoute ? .always : .never
+
          if (_routeJson != nil) {
             let json = _routeJson!.data(using: .utf8)!
 
@@ -347,7 +349,7 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
             let route: MapboxDirections.Route? = try? decoder.decode(MapboxDirections.Route.self, from: json)
 
             if let route = route {
-                let navigationService = MapboxNavigationService(route: route, routeOptions: routeOptions, simulating: .never)
+                let navigationService = MapboxNavigationService(route: route, routeIndex: 0, routeOptions: routeOptions, simulating: simulationMode)
                 let dayStyle = CustomDayStyle()
                 let navigationOptions = NavigationOptions(styles: [dayStyle], navigationService: navigationService)
                 startNavigation(route: route, options: routeOptions, navOptions: navigationOptions)
@@ -361,9 +363,10 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
     func startNavigation(route: Route, options: NavigationRouteOptions, navOptions: NavigationOptions)
     {
         isEmbeddedNavigation = false
+        
         if(self._navigationViewController == nil)
         {
-            self._navigationViewController = NavigationViewController(for: route, routeOptions: options, navigationOptions: navOptions)
+            self._navigationViewController = NavigationViewController(for: route, routeIndex: 0, routeOptions: options, navigationOptions: navOptions)
             self._navigationViewController!.modalPresentationStyle = .fullScreen
             self._navigationViewController!.delegate = self
             self._navigationViewController!.mapView?.localizeLabels()
@@ -373,6 +376,7 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
 
             NavigationSettings.shared.distanceUnit = options.distanceMeasurementSystem == .metric ? .kilometer : .mile;
         }
+
         let flutterViewController = UIApplication.shared.delegate?.window??.rootViewController as! FlutterViewController
         flutterViewController.present(self._navigationViewController!, animated: true, completion: nil)
     }
@@ -396,9 +400,9 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
                 }
                 else
                 {
-                    let route = routes.first!
-                    strongSelf._navigationViewController?.navigationService.route = route
-                    strongSelf._navigationViewController?.navigationService.start()
+                    //let route = routes.first!
+                    //strongSelf._navigationViewController?.navigationService.route = route
+                    //strongSelf._navigationViewController?.navigationService.start()
                 }
             }
         }
@@ -450,43 +454,44 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
         
     }
     
-    func downloadOfflineRoute(arguments: NSDictionary?, flutterResult: @escaping FlutterResult)
-    {
-        // Create a directions client and store it as a property on the view controller.
-        self.navigationDirections = NavigationDirections(credentials: Directions.shared.credentials)
+    // func downloadOfflineRoute(arguments: NSDictionary?, flutterResult: @escaping FlutterResult)
+    // {
+    //     // Create a directions client and store it as a property on the view controller.
+    //     self.navigationDirections = NavigationDirections(credentials: Directions.shared.credentials)
         
-        // Fetch available routing tile versions.
-        _ = self.navigationDirections!.fetchAvailableOfflineVersions { (versions, error) in
-            guard let version = versions?.first else { return }
+    //     // Fetch available routing tile versions.
+    //     _ = self.navigationDirections!.fetchAvailableOfflineVersions { (versions, error) in
+    //         guard let version = versions?.first else { return }
             
-            let coordinateBounds = CoordinateBounds(southWest: CLLocationCoordinate2DMake(0, 0), northEast: CLLocationCoordinate2DMake(1, 1))
+    //         let coordinateBounds = CoordinateBounds(southWest: CLLocationCoordinate2DMake(0, 0), northEast: CLLocationCoordinate2DMake(1, 1))
             
-            // Download tiles using the most recent version.
-            _ = self.navigationDirections!.downloadTiles(in: coordinateBounds, version: version) { (url, response, error) in
-                guard let url = url else {
-                    flutterResult(false)
-                    preconditionFailure("Unable to locate temporary file.")
-                }
+    //         // Download tiles using the most recent version.
+    //         _ = self.navigationDirections!.downloadTiles(in: coordinateBounds, version: version) { (url, response, error) in
+    //             guard let url = url else {
+    //                 flutterResult(false)
+    //                 preconditionFailure("Unable to locate temporary file.")
+    //             }
                 
-                guard let outputDirectoryURL = Bundle.mapboxCoreNavigation.suggestedTileURL(version: version) else {
-                    flutterResult(false)
-                    preconditionFailure("No suggested tile URL.")
-                }
-                try? FileManager.default.createDirectory(at: outputDirectoryURL, withIntermediateDirectories: true, attributes: nil)
+    //             guard let outputDirectoryURL = Bundle.mapboxCoreNavigation.suggestedTileURL(version: version) else {
+    //                 flutterResult(false)
+    //                 preconditionFailure("No suggested tile URL.")
+    //             }
+    //             try? FileManager.default.createDirectory(at: outputDirectoryURL, withIntermediateDirectories: true, attributes: nil)
                 
-                // Unpack downloaded routing tiles.
-                NavigationDirections.unpackTilePack(at: url, outputDirectoryURL: outputDirectoryURL, progressHandler: { (totalBytes, bytesRemaining) in
-                    // Show unpacking progress.
-                }, completionHandler: { (result, error) in
-                    // Configure the offline router with the output directory where the tiles have been unpacked.
-                    self.navigationDirections!.configureRouter(tilesURL: outputDirectoryURL) { (numberOfTiles) in
-                        // Completed, dismiss UI
-                        flutterResult(true)
-                    }
-                })
-            }
-        }
-    }
+    //             // Unpack downloaded routing tiles.
+    //             NavigationDirections.unpackTilePack(at: url, outputDirectoryURL: outputDirectoryURL, progressHandler: { (totalBytes, bytesRemaining) in
+    //                 // Show unpacking progress.
+    //             }, completionHandler: { (result, error) in
+    //                 // Configure the offline router with the output directory where the tiles have been unpacked.
+    //                 self.navigationDirections!.configureRouter(tilesURL: outputDirectoryURL) { (numberOfTiles) in
+    //                     // Completed, dismiss UI
+    //                     flutterResult(true)
+    //                 }
+    //             })
+    //         }
+    //     }
+    // }
+
     //MARK: NavigationViewController Delegates
     public func navigationViewController(_ navigationViewController: NavigationViewController, didUpdate progress: RouteProgress, with location: CLLocation, rawLocation: CLLocation) {
         _lastKnownLocation = location
@@ -516,8 +521,16 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
     }
     
     public func navigationViewController(_ navigationViewController: NavigationViewController, didArriveAt waypoint: Waypoint) -> Bool {
+
+        let isFinalLeg = navigationViewController.navigationService.routeProgress.isFinalLeg
+
+        if isFinalLeg {
+            sendEvent(eventType: MapBoxEventType.on_final_arrival, data: "true")
+            return true
+        }
         
         sendEvent(eventType: MapBoxEventType.on_arrival, data: "true")
+        
         if(!_wayPoints.isEmpty && IsMultipleUniqueRoutes)
         {
             continueNavigationWithWayPoints(wayPoints: [getLastKnownLocation(), _wayPoints.remove(at: 0)])
@@ -578,6 +591,7 @@ enum MapBoxEventType: Int, Codable
     case speech_announcement
     case banner_instruction
     case on_arrival
+    case on_final_arrival
     case failed_to_reroute
     case reroute_along
 }
@@ -960,7 +974,7 @@ public class FlutterMapboxNavigationView : NavigationFactory, MGLMapViewDelegate
     func startEmbeddedNavigation(arguments: NSDictionary?, result: @escaping FlutterResult) {
         
         guard let route = route else { return }
-        let navigationService = MapboxNavigationService(route: route, routeOptions: routeOptions!, simulating: self._simulateRoute ? .always : .onPoorGPS)
+        let navigationService = MapboxNavigationService(route: route, routeIndex: 0, routeOptions: routeOptions!, simulating: self._simulateRoute ? .always : .onPoorGPS)
         var dayStyle = CustomDayStyle()
         if(_mapStyleUrlDay != nil){
             dayStyle = CustomDayStyle(url: _mapStyleUrlDay)
@@ -970,7 +984,7 @@ public class FlutterMapboxNavigationView : NavigationFactory, MGLMapViewDelegate
             nightStyle.mapStyleURL = URL(string: _mapStyleUrlNight!)!
         }
         let navigationOptions = NavigationOptions(styles: [dayStyle, nightStyle], navigationService: navigationService)
-        _navigationViewController = NavigationViewController(for: route, routeOptions: routeOptions!, navigationOptions: navigationOptions)
+        _navigationViewController = NavigationViewController(for: route, routeIndex: 0, routeOptions: routeOptions!, navigationOptions: navigationOptions)
         _navigationViewController!.delegate = self
         
         let flutterViewController = UIApplication.shared.delegate?.window?!.rootViewController as! FlutterViewController
@@ -1216,7 +1230,7 @@ public class RouteOptionsViewController : UIViewController, MGLMapViewDelegate
         guard let route = route, let routeOptions = routeOptions else{
             return
         }
-        let navigationViewController = NavigationViewController(for: route, routeOptions: routeOptions)
+        let navigationViewController = NavigationViewController(for: route, routeIndex: 0, routeOptions: routeOptions)
         navigationViewController.modalPresentationStyle = .fullScreen
         self.present(navigationViewController, animated: true, completion: nil)
     }
@@ -1244,16 +1258,16 @@ class CustomDayStyle: DayStyle {
         initStyle()
         if(url != nil)
         {
-            mapStyleURL = URL(string: url!) ?? MGLStyle.navigationGuidanceDayStyleURL
-            previewMapStyleURL = URL(string: url!) ?? MGLStyle.navigationPreviewDayStyleURL
+            mapStyleURL = URL(string: url!) ?? MGLStyle.navigationDayStyleURL
+            previewMapStyleURL = URL(string: url!) ?? MGLStyle.navigationDayStyleURL
         }
     }
     
     func initStyle()
     {
         // Use a custom map style.
-        mapStyleURL = MGLStyle.navigationGuidanceDayStyleURL
-        previewMapStyleURL = MGLStyle.navigationPreviewDayStyleURL
+        mapStyleURL = MGLStyle.navigationDayStyleURL
+        previewMapStyleURL = MGLStyle.navigationDayStyleURL
         
         // Specify that the style should be used during the day.
         styleType = .day
@@ -1291,7 +1305,7 @@ class CustomDayStyle: DayStyle {
         ManeuverView.appearance(whenContainedInInstancesOf: [StepInstructionsView.self]).secondaryColor = lightGrayColor
         MarkerView.appearance().pinColor = defaultGreenColor
         NextBannerView.appearance().backgroundColor = backgroundColor
-        NextInstructionLabel.appearance().textColor = #colorLiteral(red: 0.9842069745, green: 0.9843751788, blue: 0.9841964841, alpha: 1)
+        NextInstructionLabel.appearance().normalTextColor = #colorLiteral(red: 1, green: 1, blue: 1, alpha: 1)
         NavigationMapView.appearance().tintColor = defaultGreenColor
         NavigationMapView.appearance().routeCasingColor = backgroundColor
         NavigationMapView.appearance().trafficHeavyColor = #colorLiteral(red: 0.9995597005, green: 0, blue: 0, alpha: 1)
@@ -1323,8 +1337,8 @@ class CustomNightStyle: NightStyle {
     required init() {
         super.init()
         
-        mapStyleURL = MGLStyle.navigationGuidanceNightStyleURL
-        previewMapStyleURL = MGLStyle.navigationPreviewNightStyleURL
+        mapStyleURL = MGLStyle.navigationNightStyleURL
+        previewMapStyleURL = MGLStyle.navigationNightStyleURL
         // Specify that the style should be used at night.
         styleType = .night
     }
