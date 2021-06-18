@@ -334,6 +334,9 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
 
     func startNavigationWithDirectionsJson(coordinates: [CLLocationCoordinate2D], flutterResult: @escaping FlutterResult)
     {
+
+        let simulationMode: SimulationMode = _simulateRoute ? .always : .never
+
          if (_routeJson != nil) {
             let json = _routeJson!.data(using: .utf8)!
 
@@ -347,7 +350,7 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
             let route: MapboxDirections.Route? = try? decoder.decode(MapboxDirections.Route.self, from: json)
 
             if let route = route {
-                let navigationService = MapboxNavigationService(route: route, routeOptions: routeOptions, simulating: .never)
+                let navigationService = MapboxNavigationService(route: route, routeOptions: routeOptions, simulating: simulationMode)
                 let dayStyle = CustomDayStyle()
                 let navigationOptions = NavigationOptions(styles: [dayStyle], navigationService: navigationService)
                 startNavigation(route: route, options: routeOptions, navOptions: navigationOptions)
