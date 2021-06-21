@@ -169,8 +169,8 @@ class NavigationActivity : AppCompatActivity(),
         }
 
         if (points.count() > 0) {
-            // fetchRoute(points.removeAt(0), points.removeAt(0))
-            //fetchRoute(points)
+            //fetchRoute(points.removeAt(0), points.removeAt(0))
+            //fetchMapMatchRoute(points)
             fetchRouteWithJson()
         }
 
@@ -334,7 +334,7 @@ class NavigationActivity : AppCompatActivity(),
         }
     }
 
-    private fun fetchRoute(coordinates: List<Point>) {
+    private fun fetchMapMatchRoute(coordinates: List<Point>) {
         print("MapMatching request with ${coordinates.size} coordinates.")
 
         val mapMatching = Mapbox.getAccessToken()?.let {
@@ -374,44 +374,44 @@ class NavigationActivity : AppCompatActivity(),
         }
     }
 
-//    private fun fetchRoute(origin: Point, destination: Point) {
-//
-//        val accessToken = Mapbox.getAccessToken()
-//        if (accessToken == null) {
-//            Toast.makeText(this, "Access Token is Required", Toast.LENGTH_SHORT).show()
-//            finish()
-//            return
-//        }
-//        currentDestination = destination
-//        NavigationRoute.builder(this)
-//                .accessToken(accessToken)
-//                .origin(origin)
-//                .destination(destination)
-//                .alternatives(false)
-//                .profile(DirectionsCriteria.PROFILE_CYCLING)
-//                .language(FlutterMapboxNavigationPlugin.navigationLanguage)
-//                .voiceUnits(FlutterMapboxNavigationPlugin.navigationVoiceUnits)
-//                .continueStraight(!FlutterMapboxNavigationPlugin.allowsUTurnsAtWayPoints)
-//                .annotations(DirectionsCriteria.ANNOTATION_DISTANCE, DirectionsCriteria.ANNOTATION_DURATION, DirectionsCriteria.ANNOTATION_DURATION, DirectionsCriteria.ANNOTATION_CONGESTION)
-//                .build()
-//                .getRoute(object : SimplifiedCallback() {
-//                    override fun onResponse(call: Call<DirectionsResponse>, response: Response<DirectionsResponse>) {
-//                        val directionsResponse = response.body()
-//                        if (directionsResponse != null) {
-//                            if (!directionsResponse.routes().isEmpty()) buildAndStartNavigation(directionsResponse.routes()[0]) else {
-//                                val message = directionsResponse.message()
-//                                sendEvent(MapBoxEvents.ROUTE_BUILD_FAILED, message!!)
-//                                finish()
-//                            }
-//                        }
-//                    }
-//
-//                    override fun onFailure(call: Call<DirectionsResponse>, throwable: Throwable) {
-//                        sendEvent(MapBoxEvents.ROUTE_BUILD_FAILED, throwable.localizedMessage)
-//                        finish()
-//                    }
-//                })
-//    }
+   private fun fetchRoute(origin: Point, destination: Point) {
+
+       val accessToken = Mapbox.getAccessToken()
+       if (accessToken == null) {
+           Toast.makeText(this, "Access Token is Required", Toast.LENGTH_SHORT).show()
+           finish()
+           return
+       }
+       currentDestination = destination
+       NavigationRoute.builder(this)
+               .accessToken(accessToken)
+               .origin(origin)
+               .destination(destination)
+               .alternatives(false)
+               .profile(DirectionsCriteria.PROFILE_CYCLING)
+               .language(FlutterMapboxNavigationPlugin.navigationLanguage)
+               .voiceUnits(FlutterMapboxNavigationPlugin.navigationVoiceUnits)
+               .continueStraight(!FlutterMapboxNavigationPlugin.allowsUTurnsAtWayPoints)
+               .annotations(DirectionsCriteria.ANNOTATION_DISTANCE, DirectionsCriteria.ANNOTATION_DURATION, DirectionsCriteria.ANNOTATION_DURATION, DirectionsCriteria.ANNOTATION_CONGESTION)
+               .build()
+               .getRoute(object : SimplifiedCallback() {
+                   override fun onResponse(call: Call<DirectionsResponse>, response: Response<DirectionsResponse>) {
+                       val directionsResponse = response.body()
+                       if (directionsResponse != null) {
+                           if (!directionsResponse.routes().isEmpty()) buildAndStartNavigation(directionsResponse.routes()[0]) else {
+                               val message = directionsResponse.message()
+                               sendEvent(MapBoxEvents.ROUTE_BUILD_FAILED, message!!)
+                               finish()
+                           }
+                       }
+                   }
+
+                   override fun onFailure(call: Call<DirectionsResponse>, throwable: Throwable) {
+                       sendEvent(MapBoxEvents.ROUTE_BUILD_FAILED, throwable.localizedMessage)
+                       finish()
+                   }
+               })
+   }
 
     private fun getLastKnownLocation(): Point {
         return Point.fromLngLat(lastKnownLocation?.longitude!!, lastKnownLocation?.latitude!!)
