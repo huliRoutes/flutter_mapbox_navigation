@@ -520,7 +520,15 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
     
     public func navigationViewController(_ navigationViewController: NavigationViewController, didArriveAt waypoint: Waypoint) -> Bool {
         
-        sendEvent(eventType: MapBoxEventType.on_arrival, data: "true")
+        let isFinalLeg = navigationViewController.navigationService.routeProgress.isFinalLeg
+
+        if isFinalLeg {
+            sendEvent(eventType: MapBoxEventType.on_arrival, data: "final_destination")
+        } else {
+            sendEvent(eventType: MapBoxEventType.on_arrival, data: "true")
+        }
+        
+
         if(!_wayPoints.isEmpty && IsMultipleUniqueRoutes)
         {
             continueNavigationWithWayPoints(wayPoints: [getLastKnownLocation(), _wayPoints.remove(at: 0)])
