@@ -229,7 +229,7 @@ class NavigationActivity : AppCompatActivity(),
         }
 
         //fetchRoute()
-        fetchRouteWithJson
+        fetchRouteWithJson()
     }
 
     override fun onNavigationFinished() {
