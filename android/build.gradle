@@ -14,7 +14,29 @@ buildscript {
     }
 }
 
+def String readSdkTokenFromNetrc(String netrcFile, String repoHostname) {
+    def netrcContent = "cat ${netrcFile}".execute().text.split("\n")
+    boolean foundMachine = false
+    String token = null;
+
+    for (String line : netrcContent) {
+        if (line.startsWith("machine") && line.substring("machine".length()).trim().equals(repoHostname)) {
+            foundMachine = true
+        } else if (foundMachine && token == null && line.startsWith("password")) {
+            token = line.substring("password".length()).trim()
+        }
+    }
+    return token
+}
+
 rootProject.allprojects {
+    def token = System.getenv('SDK_REGISTRY_TOKEN')
+    if (token == null || token.empty) {
+        token = readSdkTokenFromNetrc(System.getenv('HOME') + '/.netrc', 'api.mapbox.com')
+        if (token == null || token.empty) {
+            throw new Exception("SDK Registry token is null. See README.md for more information.")
+        }
+    }
     repositories {
         google()
         jcenter()
@@ -29,7 +51,7 @@ rootProject.allprojects {
                 // This should always be `mapbox` (not your username). 
                 username = "mapbox"
                 // Use the secret token you stored in gradle.properties as the password
-                password = project.properties['MAPBOX_DOWNLOADS_TOKEN'] ?: ""
+                password = token
             }
         }
     }
@@ -55,6 +77,9 @@ android {
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
+    }
+    kotlinOptions {
+        jvmTarget = "1.8"
     }
 }
 
