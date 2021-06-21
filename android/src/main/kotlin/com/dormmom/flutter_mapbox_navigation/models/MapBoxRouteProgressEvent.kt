@@ -1,8 +1,8 @@
 package com.dormmom.flutter_mapbox_navigation.models
 
 import android.location.Location
-import com.mapbox.services.android.navigation.v5.routeprogress.RouteProgress
-import com.mapbox.services.android.navigation.v5.utils.RouteUtils
+import com.mapbox.android.navigation.v5.routeprogress.RouteProgress
+import com.mapbox.android.navigation.v5.utils.RouteUtils
 
 class MapBoxRouteProgressEvent(progress: RouteProgress, location: Location) {
  

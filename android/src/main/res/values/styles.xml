@@ -53,7 +53,7 @@
 <!--        &lt;!&ndash; Color of severe traffic congestion on primary route &ndash;&gt;-->
 <!--        <item name="routeSevereCongestionColor">@color/mapbox_navigation_route_layer_congestion_red</item>-->
         <!-- Color of primary route shield -->
-        <item name="routeShieldColor">@color/mapboxWhite</item>
+        <!-- <item name="routeShieldColor">@color/mapboxWhite</item> -->
         <!-- Color of primary route traveled -->
 <!--        <item name="routeLineTraveledColor">@color/mapbox_navigation_route_line_traveled_color</item>-->
 <!--        &lt;!&ndash; Color of primary route shield traveled &ndash;&gt;-->

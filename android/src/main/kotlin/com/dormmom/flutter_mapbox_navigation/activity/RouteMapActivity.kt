@@ -12,7 +12,7 @@ import android.view.View
 import android.widget.Button
 import android.widget.Toast
 import androidx.annotation.NonNull
-import com.dormmom.flutter_mapbox_navigation.CustomNavigationNotification
+//import com.dormmom.flutter_mapbox_navigation.CustomNavigationNotification
 import com.dormmom.flutter_mapbox_navigation.R
 import com.dormmom.flutter_mapbox_navigation.utilities.PluginUtilities
 import com.mapbox.android.core.location.LocationEngine
@@ -29,14 +29,14 @@ import com.mapbox.mapboxsdk.maps.MapView
 import com.mapbox.mapboxsdk.maps.MapboxMap
 import com.mapbox.mapboxsdk.maps.OnMapReadyCallback
 import com.mapbox.mapboxsdk.maps.Style
-import com.mapbox.services.android.navigation.ui.v5.route.NavigationMapRoute
-import com.mapbox.services.android.navigation.v5.location.replay.ReplayRouteLocationEngine
-import com.mapbox.services.android.navigation.v5.milestone.Milestone
-import com.mapbox.services.android.navigation.v5.milestone.MilestoneEventListener
-import com.mapbox.services.android.navigation.v5.navigation.*
-import com.mapbox.services.android.navigation.v5.offroute.OffRouteListener
-import com.mapbox.services.android.navigation.v5.routeprogress.ProgressChangeListener
-import com.mapbox.services.android.navigation.v5.routeprogress.RouteProgress
+import com.mapbox.navigation.ui.route.NavigationMapRoute
+import com.mapbox.navigation.core.replay.ReplayRouteLocationEngine
+//import com.mapbox.android.navigation.v5.milestone.Milestone
+//import com.mapbox.android.navigation.v5.milestone.MilestoneEventListener
+import com.mapbox.navigation.ui.*
+import com.mapbox.android.navigation.v5.offroute.OffRouteListener
+import com.mapbox.android.navigation.v5.routeprogress.ProgressChangeListener
+import com.mapbox.android.navigation.v5.routeprogress.RouteProgress
 import com.mapbox.turf.TurfConstants
 import com.mapbox.turf.TurfMeasurement
 import retrofit2.Call
@@ -124,9 +124,9 @@ class RouteMapActivity : Activity(), ActivityLifecycleCallbacks, OnMapReadyCallb
         mapView!!.getMapAsync(this)
 
         val context = applicationContext;
-        val customNotification = CustomNavigationNotification(this.applicationContext);
+        //val customNotification = CustomNavigationNotification(this.applicationContext);
         val options = MapboxNavigationOptions.Builder()
-                                              .navigationNotification(customNotification)
+                                              //.navigationNotification(customNotification)
                                               .build();
 
         var accessToken = PluginUtilities.getResourceFromContext(this, "mapbox_access_token")
