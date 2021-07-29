@@ -287,7 +287,7 @@ class NavigationActivity : AppCompatActivity(),
     }
 
     override fun onNextRouteLegStart(routeLegProgress: RouteLegProgress) {
-        TODO("Not yet implemented")
+        sendEvent(MapBoxEvents.MILESTONE_EVENT)
     }
 
     private fun fetchRouteWithJson() {
