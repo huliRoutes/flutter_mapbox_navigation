@@ -74,6 +74,8 @@ class MapBoxOptions {
   /// No destination is required when set to true.
   final bool? enableFreeDriveMode;
 
+  final String? routeJson;
+
   MapBoxOptions(
       {this.initialLatitude,
       this.initialLongitude,
@@ -95,7 +97,8 @@ class MapBoxOptions {
       this.mapStyleUrlNight,
       this.enableFreeDriveMode,
       this.padding,
-      this.animateBuildRoute});
+      this.animateBuildRoute,
+      this.routeJson});
 
   Map<String, dynamic> toMap() {
     final Map<String, dynamic> optionsMap = new Map<String, dynamic>();
@@ -124,6 +127,7 @@ class MapBoxOptions {
       optionsMap['allowsUTurnAtWayPoints'] = this.allowsUTurnAtWayPoints;
     if (this.enableRefresh != null)
       optionsMap['enableRefresh'] = this.enableRefresh;
+    if (this.routeJson != null) optionsMap['routeJson'] = this.routeJson;
 
     addIfNonNull("voiceInstructionsEnabled", voiceInstructionsEnabled);
     addIfNonNull("bannerInstructionsEnabled", bannerInstructionsEnabled);

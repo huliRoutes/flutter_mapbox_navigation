@@ -91,7 +91,28 @@ class NavigationActivity : AppCompatActivity(),
             return
         }
 
-        fetchRoute()
+        //fetchRoute()
+        fetchRouteWithJson()
+    }
+
+    private fun fetchRouteWithJson() {
+        
+        val accessToken = Mapbox.getAccessToken()
+        if (accessToken == null || accessToken == "MAPBOX_ACCESS_TOKEN_HERE" || FlutterMapboxNavigationPlugin.routeJson == null) {
+            sendEvent(MapBoxEvents.ROUTE_BUILD_FAILED, "Route json or Access Token is Required")
+            finish()
+            return
+        }
+        
+        val navigationOptions = MapboxNavigation.defaultNavigationOptionsBuilder(this, accessToken).locationEngine(getLocationEngine()).build()
+        mapboxNavigation = MapboxNavigationProvider.create(navigationOptions)
+        //mapboxNavigation.registerOffRouteObserver(offRouteObserver)
+        //mapboxNavigation.attachFasterRouteObserver(fasterRouteObserver)
+        mapboxNavigation.registerVoiceInstructionsObserver(voiceInstructionsObserver)
+
+        val route = DirectionsRoute.fromJson(FlutterMapboxNavigationPlugin.routeJson);
+        buildAndStartNavigation(route)
+    
     }
 
     private fun fetchRoute() {

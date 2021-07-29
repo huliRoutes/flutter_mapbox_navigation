@@ -85,6 +85,7 @@ public class FlutterMapboxNavigationPlugin: FlutterPlugin, MethodCallHandler, Ev
     var durationRemaining: Double? = null
     var platformViewRegistry: PlatformViewRegistry? = null
     var binaryMessenger: BinaryMessenger? = null
+    var routeJson: String? = null
 
     @JvmStatic
     var view_name = "FlutterMapboxNavigationView"
@@ -181,6 +182,8 @@ public class FlutterMapboxNavigationPlugin: FlutterPlugin, MethodCallHandler, Ev
 
     mapStyleUrlDay = arguments?.get("mapStyleUrlDay") as? String
     mapStyleUrlNight = arguments?.get("mapStyleUrlNight") as? String
+
+    routeJson = arguments?.get("routeJson") as? String
 
     wayPoints.clear()
 
