@@ -76,6 +76,7 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
     var _lastKnownLocation: CLLocation?
     
     var _options: NavigationRouteOptions?
+    var _routeJson: String?
     var _simulateRoute = false
     var _allowsUTurnAtWayPoints: Bool?
     var _isOptimized = false
@@ -128,6 +129,8 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
             let location = Waypoint(coordinate: CLLocationCoordinate2D(latitude: loc.latitude!, longitude: loc.longitude!), name: loc.name)
             _wayPoints.append(location)
         }
+
+        _routeJson = arguments?["routeJson"] as? String
         
         _language = arguments?["language"] as? String ?? _language
         _voiceUnits = arguments?["units"] as? String ?? _voiceUnits
@@ -142,19 +145,23 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
         }
         _mapStyleUrlDay = arguments?["mapStyleUrlDay"] as? String
         _mapStyleUrlNight = arguments?["mapStyleUrlNight"] as? String
-       if(_wayPoints.count > 0)
-       {
-           if(IsMultipleUniqueRoutes)
-           {
-               startNavigationWithWayPoints(wayPoints: [_wayPoints.remove(at: 0), _wayPoints.remove(at: 0)], flutterResult: result)
-           }
-           else
-           {
-               startNavigationWithWayPoints(wayPoints: _wayPoints, flutterResult: result)
-           }
+        
+    //    if(_wayPoints.count > 0)
+    //    {
+    //        if(IsMultipleUniqueRoutes)
+    //        {
+    //            startNavigationWithWayPoints(wayPoints: [_wayPoints.remove(at: 0), _wayPoints.remove(at: 0)], flutterResult: result)
+    //        }
+    //        else
+    //        {
+    //            startNavigationWithWayPoints(wayPoints: _wayPoints, flutterResult: result)
+    //        }
 
-       }
- //       startNavigationWithMapmatching(coordinates: coordinates)
+    //    }
+
+       startNavigationWithDirectionsJson(coordinates: coordinates, flutterResult: result)
+
+    //  startNavigationWithMapmatching(coordinates: coordinates)
     }
     
     func startNavigationWithWayPoints(wayPoints: [Waypoint], flutterResult: @escaping FlutterResult)
@@ -268,7 +275,7 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
                         options.locale = Locale(identifier: _language)
 
                 let route = match
-                let navigationService = MapboxNavigationService(route: route, routeOptions: options, simulating: .never)
+                let navigationService = MapboxNavigationService(route: route, routeIndex: 0, routeOptions: options, simulating: .never)
 
                 let navigationOptions = NavigationOptions(styles: [dayStyle], navigationService: navigationService)
                 self.startNavigation(route: match, options: options, navOptions: navigationOptions)
@@ -318,6 +325,34 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
 //                self.startNavigation(route: route, options: navOptions, navOptions: navigationOptions)
 //            }
 //        }
+
+     func startNavigationWithDirectionsJson(coordinates: [CLLocationCoordinate2D], flutterResult: @escaping FlutterResult)
+    {
+        let simulationMode: SimulationMode = _simulateRoute ? .always : .never
+
+         if (_routeJson != nil) {
+            let json = _routeJson!.data(using: .utf8)!
+
+            let routeOptions = NavigationRouteOptions(coordinates: coordinates, profileIdentifier: .cycling)
+            routeOptions.locale = Locale(identifier: _language)
+            routeOptions.distanceMeasurementSystem = _voiceUnits == "imperial" ? .imperial : .metric
+
+            let decoder = JSONDecoder()
+            decoder.userInfo[.options] = routeOptions
+            decoder.userInfo[.credentials] = Directions.shared.credentials
+            let route: MapboxDirections.Route? = try? decoder.decode(MapboxDirections.Route.self, from: json)
+
+            if let route = route {
+                let navigationService = MapboxNavigationService(route: route, routeIndex: 0, routeOptions: routeOptions, simulating: simulationMode)
+                let dayStyle = CustomDayStyle()
+                let navigationOptions = NavigationOptions(styles: [dayStyle], navigationService: navigationService)
+                startNavigation(route: route, options: routeOptions, navOptions: navigationOptions)
+            } else {
+                sendEvent(eventType: MapBoxEventType.route_build_failed)
+                print("Error parsing route from json")
+            }
+        }
+    }
     
     func startNavigation(route: Route, options: NavigationRouteOptions, navOptions: NavigationOptions)
     {
@@ -328,6 +363,11 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
             self._navigationViewController!.modalPresentationStyle = .fullScreen
             self._navigationViewController!.delegate = self
             self._navigationViewController!.mapView?.localizeLabels()
+
+            self._navigationViewController!.showsReportFeedback = false
+            self._navigationViewController!.showsEndOfRouteFeedback = false
+
+            NavigationSettings.shared.distanceUnit = options.distanceMeasurementSystem == .metric ? .kilometer : .mile;
         }
         let flutterViewController = UIApplication.shared.delegate?.window??.rootViewController as! FlutterViewController
         flutterViewController.present(self._navigationViewController!, animated: true, completion: nil)
@@ -475,7 +515,15 @@ public class NavigationFactory : NSObject, FlutterStreamHandler, NavigationViewC
     
     public func navigationViewController(_ navigationViewController: NavigationViewController, didArriveAt waypoint: Waypoint) -> Bool {
         
+        let isFinalLeg = navigationViewController.navigationService.routeProgress.isFinalLeg
+
+        if isFinalLeg {
+            sendEvent(eventType: MapBoxEventType.on_final_arrival, data: "true")
+            return true
+        }
+
         sendEvent(eventType: MapBoxEventType.on_arrival, data: "true")
+
         if(!_wayPoints.isEmpty && IsMultipleUniqueRoutes)
         {
             continueNavigationWithWayPoints(wayPoints: [getLastKnownLocation(), _wayPoints.remove(at: 0)])
@@ -535,6 +583,7 @@ enum MapBoxEventType: Int, Codable
     case faster_route_found
     case speech_announcement
     case banner_instruction
+    case on_final_arrival
     case on_arrival
     case failed_to_reroute
     case reroute_along
@@ -1268,8 +1317,59 @@ class CustomDayStyle: DayStyle {
         WayNameLabel.appearance().normalTextColor = defaultGreenColor
         WayNameView.appearance().backgroundColor = secondaryBackgroundColor
         
+        // ArrivalTimeLabel.appearance().textColor = lightGrayColor
+        // ArrivalTimeLabel.appearance().alpha = 0
+        // ArrivalTimeLabel.appearance().isHidden = true
+        // BottomBannerView.appearance().backgroundColor = secondaryBackgroundColor
+        // TopBannerView.appearance().backgroundColor = backgroundColor
+        // DismissButton.appearance().backgroundColor = backgroundColor
+        // DismissButton.appearance().textColor = primaryLabelColor
+        // Button.appearance().textColor = #colorLiteral(red: 0.9842069745, green: 0.9843751788, blue: 0.9841964841, alpha: 1)
+        // CancelButton.appearance().tintColor = defaultGreenColor
+        // DistanceLabel.appearance(whenContainedInInstancesOf: [InstructionsBannerView.self]).unitTextColor = secondaryLabelColor
+        // DistanceLabel.appearance(whenContainedInInstancesOf: [InstructionsBannerView.self]).valueTextColor = primaryLabelColor
+        // DistanceLabel.appearance(whenContainedInInstancesOf: [StepInstructionsView.self]).unitTextColor = lightGrayColor
+        // DistanceLabel.appearance(whenContainedInInstancesOf: [StepInstructionsView.self]).valueTextColor = darkGrayColor
+        // DistanceRemainingLabel.appearance().textColor = lightGrayColor
+        // //DistanceRemainingLabel.appearance().font = .systemFont(ofSize: 28, weight: .medium)
         
-        
+        // FloatingButton.appearance().backgroundColor = #colorLiteral(red: 0.9999960065, green: 1, blue: 1, alpha: 1)
+        // FloatingButton.appearance().tintColor = defaultGreenColor
+        // InstructionsBannerView.appearance().backgroundColor = backgroundColor
+        // LaneView.appearance().primaryColor = #colorLiteral(red: 0.9842069745, green: 0.9843751788, blue: 0.9841964841, alpha: 1)
+        // ManeuverView.appearance().backgroundColor = backgroundColor
+        // ManeuverView.appearance(whenContainedInInstancesOf: [InstructionsBannerView.self]).primaryColor = #colorLiteral(red: 0.9842069745, green: 0.9843751788, blue: 0.9841964841, alpha: 1)
+        // ManeuverView.appearance(whenContainedInInstancesOf: [InstructionsBannerView.self]).secondaryColor = #colorLiteral(red: 1, green: 1, blue: 1, alpha: 0.5)
+        // ManeuverView.appearance(whenContainedInInstancesOf: [NextBannerView.self]).primaryColor = #colorLiteral(red: 0.9842069745, green: 0.9843751788, blue: 0.9841964841, alpha: 1)
+        // ManeuverView.appearance(whenContainedInInstancesOf: [NextBannerView.self]).secondaryColor = #colorLiteral(red: 1, green: 1, blue: 1, alpha: 0.5)
+        // ManeuverView.appearance(whenContainedInInstancesOf: [StepInstructionsView.self]).primaryColor = darkGrayColor
+        // ManeuverView.appearance(whenContainedInInstancesOf: [StepInstructionsView.self]).secondaryColor = lightGrayColor
+        // MarkerView.appearance().pinColor = defaultGreenColor
+        // NextBannerView.appearance().backgroundColor = backgroundColor
+        // NextInstructionLabel.appearance().textColor = #colorLiteral(red: 0.9842069745, green: 0.9843751788, blue: 0.9841964841, alpha: 1)
+        // NavigationMapView.appearance().tintColor = defaultGreenColor
+        // NavigationMapView.appearance().routeCasingColor = backgroundColor
+        // NavigationMapView.appearance().trafficHeavyColor = #colorLiteral(red: 0.9995597005, green: 0, blue: 0, alpha: 1)
+        // NavigationMapView.appearance().trafficLowColor = defaultGreenColor
+        // NavigationMapView.appearance().trafficModerateColor = #colorLiteral(red: 1, green: 0.6184511781, blue: 0, alpha: 1)
+        // NavigationMapView.appearance().trafficSevereColor = #colorLiteral(red: 0.7458544374, green: 0.0006075350102, blue: 0, alpha: 1)
+        // NavigationMapView.appearance().trafficUnknownColor = defaultGreenColor
+        // // Customize the color that appears on the traversed section of a route
+        // //        NavigationMapView.appearance().traversedRouteColor = #colorLiteral(red: 0.8039215803, green: 0.8039215803, blue: 0.8039215803, alpha: 0.5)
+        // PrimaryLabel.appearance(whenContainedInInstancesOf: [InstructionsBannerView.self]).normalTextColor = primaryLabelColor
+        // PrimaryLabel.appearance(whenContainedInInstancesOf: [StepInstructionsView.self]).normalTextColor = darkGrayColor
+        // ResumeButton.appearance().backgroundColor = secondaryBackgroundColor
+        // ResumeButton.appearance().tintColor = defaultGreenColor
+        // SecondaryLabel.appearance(whenContainedInInstancesOf: [InstructionsBannerView.self]).normalTextColor = secondaryLabelColor
+        // SecondaryLabel.appearance(whenContainedInInstancesOf: [StepInstructionsView.self]).normalTextColor = darkGrayColor
+        // TimeRemainingLabel.appearance().textColor = lightGrayColor
+        // TimeRemainingLabel.appearance().trafficUnknownColor = darkGrayColor
+        // //TimeRemainingLabel.appearance().alpha = 0
+        // TimeRemainingLabel.appearance().isHidden = true
+        // WayNameLabel.appearance().normalTextColor = defaultGreenColor
+        // WayNameView.appearance().backgroundColor = secondaryBackgroundColor
+        // WayNameView.appearance().alpha = 0
+        // WayNameView.appearance().isHidden = true
     }
 }
 

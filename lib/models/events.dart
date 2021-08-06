@@ -19,6 +19,7 @@ enum MapBoxEvent {
   speech_announcement,
   banner_instruction,
   on_arrival,
+  on_final_arrival,
   failed_to_reroute,
   reroute_along
 }
